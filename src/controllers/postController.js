@@ -1,6 +1,14 @@
 import Post from '../models/postModel.js';
 import User from '../models/userModel.js';
 import getUserIdFromToken from '../utils/helpers.js';
+import { v2 as cloudinary } from 'cloudinary';
+import stream from 'stream';
+import multer from 'multer'
+
+
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage })
 
 // Получение всех постов пользователя
 export const getUserPosts = async (req, res) => {
@@ -18,30 +26,45 @@ export const createPost = async (req, res) => {
   const { caption } = req.body;
 
   try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+    // get image
+    const bufferStream = new stream.PassThrough()
+    console.log(req.file)
+    bufferStream.end(req.file.buffer)
 
-    // Проверяем, был ли загружен файл
-    if (!req.file) return res.status(400).json({ error: 'Изображение не предоставлено' });
+    let image_url = 'test'
 
-    // Преобразуем файл в Base64
-    const imageBuffer = req.file.buffer;
-    const imageBase64 = imageBuffer.toString('base64');
+    cloudinary.uploader.upload_stream({ resource_type: 'image' }, async (error, result) => {
+      if (error) {
+        return res.status(500).json({ message: 'Ошибка загрузки' })
+      }
+      image_url = result.secure_url
 
-    const post = new Post({
-      user_id: userId,
-      image_url: `data:image/jpeg;base64,${imageBase64}`, // Используйте соответствующий формат изображения
-      caption,
-      created_at: new Date(),
-    });
 
-    await post.save();
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
 
-    user.posts_count += 1;
-    await user.save();
+      // Проверяем, был ли загружен файл
+      if (!req.file) return res.status(400).json({ error: 'Изображение не предоставлено' });
 
-    res.status(201).json(post);
+      const post = new Post({
+        user_id: userId,
+        // image_url: `data:image/jpeg;base64,${imageBase64}`, // Используйте соответствующий формат изображения
+        image_url,
+        caption,
+        created_at: new Date(),
+      });
+
+      await post.save();
+
+      user.posts_count += 1;
+      await user.save();
+
+      res.status(201).json(post);
+
+    }).end(req.file.buffer)
+
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error: 'Ошибка при создании поста' });
   }
 };
