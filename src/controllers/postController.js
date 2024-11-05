@@ -28,7 +28,6 @@ export const createPost = async (req, res) => {
   try {
     // get image
     const bufferStream = new stream.PassThrough()
-    console.log(req.file)
     bufferStream.end(req.file.buffer)
 
     let image_url = 'test'

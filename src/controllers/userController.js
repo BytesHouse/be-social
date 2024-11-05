@@ -1,5 +1,7 @@
 import User from '../models/userModel.js';
 import getUserIdFromToken from '../utils/helpers.js';
+import { v2 as cloudinary } from 'cloudinary';
+import stream from 'stream';
 import multer from 'multer';
 
 // Настройка multer для загрузки изображений
@@ -24,24 +26,27 @@ export const updateUserProfile = async (req, res) => {
   const userId = getUserIdFromToken(req);
 
   try {
+    const bufferStream = new stream.PassThrough()
+    bufferStream.end(req.file.buffer)
     const user = await User.findById(userId);
+
     if (!user) {
       return res.status(404).json({ message: 'Пользователь не найден' });
     }
 
-    const { username, bio } = req.body;
+    cloudinary.uploader.upload_stream({ resource_type: 'image' }, async (error, result) => {
+      const { username, bio } = req.body;
 
-    if (username) user.username = username;
-    if (bio) user.bio = bio;
+      if (username) user.username = username;
+      if (bio) user.bio = bio;
 
-    // Если передано изображение, преобразуем его в Base64
-    if (req.file) {
-      const base64Image = req.file.buffer.toString('base64'); // Преобразуем файл в Base64
-      user.profile_image = base64Image;
-    }
+      if (req.file) {
+        user.profile_image = result.secure_url; // адресс до картинки
+      }
 
-    const updatedUser = await user.save();
-    res.status(200).json(updatedUser);
+      const updatedUser = await user.save();
+      res.status(200).json(updatedUser);
+    })
   } catch (error) {
     res.status(500).json({ message: 'Ошибка обновления профиля', error: error.message });
   }
