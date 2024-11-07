@@ -49,6 +49,8 @@ export const createPost = async (req, res) => {
         user_id: userId,
         // image_url: `data:image/jpeg;base64,${imageBase64}`, // Используйте соответствующий формат изображения
         image_url,
+        user_name: user.username,
+        profile_image: user.profile_image,
         caption,
         created_at: new Date(),
       });
