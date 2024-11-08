@@ -9,6 +9,7 @@ import searchRoutes from './routes/searchRoutes.js';
 import likeRoutes from './routes/likeRoutes.js';
 import followRoutes from './routes/followRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import { specs, swaggerUi } from './swagger.js';
 
 // Настройка Cloudinary
 cloudinary.config({
@@ -25,6 +26,9 @@ app.use(cors());
 
 // Middleware для обработки JSON
 app.use(express.json());
+
+// Подключение swagger
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Подключение маршрутов
 app.use('/api/auth', authRoutes);
